@@ -32,4 +32,15 @@ impl DisplaySwitch {
         let displays: Vec<Display> = serde_json::from_reader(config_file).unwrap_or(vec![]);
         DisplaySwitch { displays }
     }
+
+    fn save(&self) {
+        let config_file_path = home_dir().unwrap().join(".display-switch.json");
+        let config_file = File::create(&config_file_path).unwrap();
+        serde_json::to_writer(config_file, self).unwrap();
+    }
+
+    pub fn add(&mut self, display: Display) {
+        self.displays.push(display);
+        self.save();
+    }
 }
