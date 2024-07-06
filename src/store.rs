@@ -9,6 +9,16 @@ pub struct Display {
     place: String,
 }
 
+impl Display {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_place(&self) -> &str {
+        &self.place
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DisplaySwitch {
     pub displays: Vec<Display>,
