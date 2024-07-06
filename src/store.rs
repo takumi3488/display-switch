@@ -10,6 +10,10 @@ pub struct Display {
 }
 
 impl Display {
+    pub fn new(name: String, place: String) -> Display {
+        Display { name, place }
+    }
+
     pub fn get_name(&self) -> &str {
         &self.name
     }
