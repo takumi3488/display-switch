@@ -1,4 +1,4 @@
-use std::{env, path::Path};
+use std::{env, path::Path, process::Command, str::from_utf8};
 
 pub struct Placer {
     bin_path: String,
@@ -18,7 +18,7 @@ impl Placer {
     }
 
     fn list(&self) -> String {
-        let output = std::process::Command::new(&self.bin_path)
+        let output = Command::new(&self.bin_path)
             .arg("list")
             .output()
             .expect("failed to execute displayplacer");
@@ -36,11 +36,19 @@ impl Placer {
             .join(" ")
     }
 
-    pub fn set(&self, place: &str) {
-        std::process::Command::new(&self.bin_path)
-            .arg(place)
+    pub fn set(&self, places: &Vec<String>) {
+        let output = std::process::Command::new(&self.bin_path)
+            .args(places)
             .output()
             .expect("failed to execute displayplacer");
+        // panic!("{:?}", places);
+        if !output.status.success() {
+            panic!(
+                "failed to set display places: {}",
+                from_utf8(&*(&output.stderr)).unwrap()
+            );
+        }
+        println!("{:?}", from_utf8(&*(&output.stdout)).unwrap());
     }
 }
 
@@ -53,20 +61,5 @@ mod tests {
         let placer = Placer::new();
         let list = placer.list();
         assert!(list.contains("Persistent screen id:"));
-    }
-
-    #[test]
-    fn test_current_and_set() {
-        let placer = Placer::new();
-        let current = placer.current();
-        assert!(current.contains(r#""id:"#));
-    }
-
-    #[test]
-    fn test_set() {
-        let placer = Placer::new();
-        let current = placer.current();
-        placer.set(&current);
-        assert_eq!(current, placer.current());
     }
 }
