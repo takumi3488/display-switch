@@ -16,7 +16,7 @@ fn main() {
         .find(|&d| d.get_place() == current)
         .is_none()
     {
-        println!("Current display place is not in the list. Enter a name for the current display:");
+        print!("Current display place is not in the list. Enter a name for the current display: ");
         let mut name = String::new();
         io::stdin().read_line(&mut name).unwrap();
         display_switch.add(Display::new(name.trim().to_string(), current.to_string()));
