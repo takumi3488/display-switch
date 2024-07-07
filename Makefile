@@ -1,9 +1,8 @@
-default: target/release/display-switch
+default: target/release/display-switch /opt/homebrew/bin/displayplacer
 
 target/release/display-switch: \
 	Cargo.toml Cargo.lock \
-	src/main.rs src/placer.rs src/store.rs \
-	/opt/homebrew/bin/displayplacer
+	src/main.rs src/placer.rs src/store.rs
 	cargo build --release
 
 /opt/homebrew/bin/displayplacer: /opt/homebrew/bin/brew
