@@ -30,4 +30,5 @@ fn main() {
     let next_index = (current_index + 1) % display_switch.displays.len();
     let next = &display_switch.displays[next_index];
     placer.set(next.get_place());
+    println!("Switched to display: {}", next.get_name());
 }
