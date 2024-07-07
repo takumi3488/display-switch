@@ -19,6 +19,10 @@ fn main() {
         print!("Current display place is not in the list. Enter a name for the current display: ");
         let mut name = String::new();
         io::stdin().read_line(&mut name).unwrap();
+        if name.trim().is_empty() {
+            println!("Name cannot be empty.");
+            return;
+        }
         display_switch.add(Display::new(name.trim().to_string(), current.to_string()));
     }
 
