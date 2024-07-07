@@ -4,7 +4,7 @@ This command memorizes and switches between multiple display placement settings.
 
 ## Installation
 
-Clone the repository and run the following command (cargo and brew commands are required).
+Clone the repository and run the following command (cargo, brew and displayplacer commands are required).
 
 ```
 make
