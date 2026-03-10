@@ -5,50 +5,49 @@ pub struct Placer {
 }
 
 impl Placer {
-    pub fn new() -> Placer {
+    pub fn new() -> Result<Placer, Box<dyn std::error::Error>> {
         let bin_path =
-            env::var("DISPLAYPLACER_PATH").unwrap_or("/opt/homebrew/bin/displayplacer".to_string());
+            env::var("DISPLAYPLACER_PATH").unwrap_or_else(|_| "/opt/homebrew/bin/displayplacer".to_string());
         if !Path::new(&bin_path).exists() {
-            panic!(
-                "displayplacer not found at path: {}\nrun `brew install displayplacer` to install",
-                bin_path
-            );
+            return Err(format!(
+                "displayplacer not found at path: {bin_path}\nrun `brew install displayplacer` to install"
+            ).into());
         }
-        Placer { bin_path }
+        Ok(Placer { bin_path })
     }
 
-    fn list(&self) -> String {
+    fn list(&self) -> Result<String, Box<dyn std::error::Error>> {
         let output = Command::new(&self.bin_path)
             .arg("list")
-            .output()
-            .expect("failed to execute displayplacer");
-        String::from_utf8(output.stdout).unwrap()
+            .output()?;
+        Ok(String::from_utf8(output.stdout)?)
     }
 
-    pub fn current(&self) -> String {
-        let list = self.list();
-        list.lines()
+    pub fn current(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let list = self.list()?;
+        let last_line = list.lines()
             .last()
-            .unwrap()
+            .ok_or("No output from displayplacer")?
+            .to_string();
+        Ok(last_line
             .split_whitespace()
             .skip(1)
             .collect::<Vec<&str>>()
-            .join(" ")
+            .join(" "))
     }
 
-    pub fn set(&self, places: &Vec<String>) {
+    pub fn set(&self, places: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         let output = std::process::Command::new(&self.bin_path)
             .args(places)
-            .output()
-            .expect("failed to execute displayplacer");
-        // panic!("{:?}", places);
+            .output()?;
         if !output.status.success() {
-            panic!(
+            return Err(format!(
                 "failed to set display places: {}",
-                from_utf8(&*(&output.stderr)).unwrap()
-            );
+                from_utf8(&output.stderr)?
+            ).into());
         }
-        println!("{:?}", from_utf8(&*(&output.stdout)).unwrap());
+        println!("{:?}", from_utf8(&output.stdout)?);
+        Ok(())
     }
 }
 
@@ -57,9 +56,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_list() {
-        let placer = Placer::new();
-        let list = placer.list();
+    fn test_list() -> Result<(), Box<dyn std::error::Error>> {
+        let placer = Placer::new()?;
+        let list = placer.list()?;
         assert!(list.contains("Persistent screen id:"));
+        Ok(())
     }
 }

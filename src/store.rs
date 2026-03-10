@@ -29,10 +29,10 @@ impl Place {
 }
 
 impl Display {
-    pub fn new(name: &str, places: &Vec<Place>) -> Display {
+    pub fn new(name: &str, places: &[Place]) -> Display {
         Display {
             name: name.to_string(),
-            places: places.clone(),
+            places: places.to_vec(),
         }
     }
 
@@ -46,52 +46,50 @@ impl Display {
 
     pub fn get_places_vec(&self) -> Vec<String> {
         self.places
-                .iter()
-                .map(|p| {
-                    format!(
-                        "id:{} res:{} hz:{} color_depth:{} enabled:{} scaling:{} origin:{} degree:{}",
-                        p.id,
-                        format!("{}x{}", p.res.0, p.res.1),
-                        p.hz,
-                        p.color_depth,
-                        p.enabled,
-                        p.scaling,
-                        format!("({},{})", p.origin.0, p.origin.1),
-                        p.degree
-                    )
-                })
-                .collect::<Vec<_>>()
+            .iter()
+            .map(|p| {
+                format!(
+                    "id:{} res:{}x{} hz:{} color_depth:{} enabled:{} scaling:{} origin:({},{}) degree:{}",
+                    p.id,
+                    p.res.0,
+                    p.res.1,
+                    p.hz,
+                    p.color_depth,
+                    p.enabled,
+                    p.scaling,
+                    p.origin.0,
+                    p.origin.1,
+                    p.degree
+                )
+            })
+            .collect::<Vec<_>>()
     }
 
-    pub fn places_from_str(s: &str) -> Vec<Place> {
-        let ptn = Regex::new(r#"id:(?<id>[0-9A-Z]{8}-([0-9A-Z]{4}-){3}[0-9A-Z]{12}) res:(?<res>[0-9]+x[0-9]+) hz:(?<hz>[0-9.]+) color_depth:(?<color_depth>[0-9]+) enabled:(?<enabled>true|false) scaling:(?<scaling>\S+) origin:(?<origin>\(-?[0-9]+,-?[0-9]+\)) degree:(?<degree>-?[0-9]+)"#).unwrap();
+    pub fn places_from_str(s: &str) -> Result<Vec<Place>, Box<dyn std::error::Error>> {
+        let ptn = Regex::new(r"id:(?<id>[0-9A-Z]{8}-([0-9A-Z]{4}-){3}[0-9A-Z]{12}) res:(?<res>[0-9]+x[0-9]+) hz:(?<hz>[0-9.]+) color_depth:(?<color_depth>[0-9]+) enabled:(?<enabled>true|false) scaling:(?<scaling>\S+) origin:(?<origin>\(-?[0-9]+,-?[0-9]+\)) degree:(?<degree>-?[0-9]+)")?;
         s.split("\" \"")
-            .map(|s| s.replace("\"", ""))
+            .map(|s| s.replace('"', ""))
             .map(|s| {
                 let caps = ptn
                     .captures(&s)
-                    .expect("Unssupported format from displayplacer");
-                Place {
+                    .ok_or("Unsupported format from displayplacer")?;
+                let res: Vec<&str> = caps["res"].split('x').collect();
+                let origin_str = caps["origin"]
+                    .trim_matches(|c| c == '(' || c == ')')
+                    .to_string();
+                let origin: Vec<&str> = origin_str.split(',').collect();
+                Ok(Place {
                     id: caps["id"].to_string(),
-                    res: {
-                        let res: Vec<&str> = caps["res"].split("x").collect();
-                        (res[0].parse().unwrap(), res[1].parse().unwrap())
-                    },
-                    hz: caps["hz"].parse().unwrap(),
-                    color_depth: caps["color_depth"].parse().unwrap(),
+                    res: (res[0].parse()?, res[1].parse()?),
+                    hz: caps["hz"].parse()?,
+                    color_depth: caps["color_depth"].parse()?,
                     enabled: caps["enabled"] == *"true",
                     scaling: caps["scaling"].to_string(),
-                    origin: {
-                        let origin: Vec<&str> = caps["origin"]
-                            .trim_matches(|c| c == '(' || c == ')')
-                            .split(',')
-                            .collect();
-                        (origin[0].parse().unwrap(), origin[1].parse().unwrap())
-                    },
-                    degree: caps["degree"].parse().unwrap(),
-                }
+                    origin: (origin[0].parse()?, origin[1].parse()?),
+                    degree: caps["degree"].parse()?,
+                })
             })
-            .collect::<Vec<_>>()
+            .collect()
     }
 }
 
@@ -101,24 +99,29 @@ pub struct DisplaySwitch {
 }
 
 impl DisplaySwitch {
-    pub fn new() -> DisplaySwitch {
-        let config_file_path = home_dir().unwrap().join(".display-switch.json");
+    pub fn new() -> Result<DisplaySwitch, Box<dyn std::error::Error>> {
+        let config_file_path = home_dir()
+            .ok_or("Failed to get home directory")?
+            .join(".display-switch.json");
         let config_file = match File::open(&config_file_path) {
             Ok(file) => file,
-            Err(_) => File::create(&config_file_path).unwrap(),
+            Err(_) => File::create(&config_file_path)?,
         };
-        let displays: Vec<Display> = serde_json::from_reader(config_file).unwrap_or(vec![]);
-        DisplaySwitch { displays }
+        let displays: Vec<Display> = serde_json::from_reader(config_file).unwrap_or_default();
+        Ok(DisplaySwitch { displays })
     }
 
-    fn save(&self) {
-        let config_file_path = home_dir().unwrap().join(".display-switch.json");
-        let config_file = File::create(&config_file_path).unwrap();
-        serde_json::to_writer_pretty(config_file, &self.displays).unwrap();
+    fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let config_file_path = home_dir()
+            .ok_or("Failed to get home directory")?
+            .join(".display-switch.json");
+        let config_file = File::create(&config_file_path)?;
+        serde_json::to_writer_pretty(config_file, &self.displays)?;
+        Ok(())
     }
 
-    pub fn add(&mut self, display: &Display) {
+    pub fn add(&mut self, display: &Display) -> Result<(), Box<dyn std::error::Error>> {
         self.displays.push(display.clone());
-        self.save();
+        self.save()
     }
 }
