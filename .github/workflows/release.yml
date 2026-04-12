@@ -21,7 +21,7 @@ jobs:
         echo "tag=v${tag}" >> "$GITHUB_OUTPUT"
     
     - name: Create a release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         name: ${{ steps.tag.outputs.tag }}
         tag_name: ${{ steps.tag.outputs.tag }}
